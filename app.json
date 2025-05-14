@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "my-app",
+    "slug": "my-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "FIREBASE_API_KEY": "AIzaSyCqWLh4dfFEP4IhkJwnUHViP9nRjQFNF2E",
+      "FIREBASE_AUTH_DOMAIN": "cse3-cd7fd.firebaseapp.com",
+      "FIREBASE_PROJECT_ID": "cse3-cd7fd",
+      "FIREBASE_STORAGE_BUCKET": "cse3-cd7fd.firebasestorage.app",
+      "FIREBASE_MESSAGING_SENDER_ID": "366877481104",
+      "FIREBASE_APP_ID": "1:366877481104:web:0da0a51bf272b7ed29e015",
+      "FIREBASE_MEASUREMENT_ID": "G-DE39FLRQMJ"
+    }
+  }
+}

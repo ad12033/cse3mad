@@ -1,57 +1,57 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+
+// --- map for ios and android ---
+/*
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
+const INITIAL_REGION = {
+  latitude: -37.72028340781326,
+  longitude: 145.0475279254138,
+  latitudeDelta: 0.01,
+  longitudeDelta: 0.01,
+};
 const CampusMap: React.FC = () => {
   const router = useRouter();
+  let MapView = null;
+  if (Platform.OS === 'ios' || Platform.OS === 'android') {
+    MapView = require('react-native-maps').default;
+  }
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={28} color="#18181b" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Campus Map</Text>
+        </View>
+        <View style={styles.mapBox}>
+          {MapView ? (
+            <MapView style={styles.map} initialRegion={INITIAL_REGION} />
+          ) : (
+            <Text style={styles.fallbackText}>Map is only available on iOS and Android.</Text>
+          )}
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+};
+*/
+
+// placeholder for web view
+const CampusMap: React.FC = () => {
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color="#18181b" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Campus Map</Text>
-      </View>
-      <View style={styles.content}>
-        <Text style={styles.title}>Campus Map</Text>
-        <Text style={styles.text}>This is the Campus Map page.</Text>
-      </View>
+      <Text style={styles.placeholder}>Campus Map page for web view</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  backButton: {
-    marginRight: 16,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#18181b',
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  text: {
-    fontSize: 16,
-    color: '#555',
-  },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  placeholder: { fontSize: 20, color: '#18181b', textAlign: 'center' },
 });
 
 export default CampusMap; 

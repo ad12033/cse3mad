@@ -1,8 +1,7 @@
-import 'dotenv/config';
+import "dotenv/config";
 
 export default {
   expo: {
-    // ... other config ...
     extra: {
       FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
       FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
@@ -12,8 +11,6 @@ export default {
       FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
       FIREBASE_MEASUREMENT_ID: process.env.FIREBASE_MEASUREMENT_ID,
     },
-    plugins: [
-      "expo-maps"
-    ]
-  }
-}
+    plugins: ["expo-maps"],
+  },
+};

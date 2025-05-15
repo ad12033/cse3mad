@@ -50,7 +50,3 @@ firebase.js
 *.swp
 *.swo
 
-# Cursor
-.cursor/
-.cursor
-

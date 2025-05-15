@@ -1,14 +1,32 @@
 import React, { useEffect, useState } from "react";
-import { Text, View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { Text, View, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
 import { useRouter } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../firebase';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { db } from '../firebase';
+
+interface Session {
+  id: string;
+  subject: string;
+  subjectName?: string;
+  locationName: string;
+  date: string;
+  time: string;
+  description?: string;
+  createdBy: string;
+  hostName?: string;
+  attendeeCount?: number;
+  attendeeLimit?: number;
+}
 
 export default function Index() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -16,6 +34,24 @@ export default function Index() {
       setLoading(false);
     });
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      setSessionsLoading(true);
+      try {
+        const sessionsCol = collection(db, 'sessions');
+        const sessionsQuery = query(sessionsCol, orderBy('createdAt', 'desc'), limit(3));
+        const sessionSnapshot = await getDocs(sessionsQuery);
+        const sessionList = sessionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Session[];
+        setSessions(sessionList);
+      } catch (error) {
+        // ignore
+      } finally {
+        setSessionsLoading(false);
+      }
+    };
+    fetchSessions();
   }, []);
 
   useEffect(() => {
@@ -35,17 +71,21 @@ export default function Index() {
 
   // Only render the home page if the user is signed in
   return (
-    <View style={styles.container}>
+    <ScrollView style={{ backgroundColor: '#fff' }} contentContainerStyle={styles.scrollContainer}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Study Group Finder</Text>
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.greeting}>Good evening</Text>
+          <Text style={styles.title}>Study Group Finder</Text>
+        </View>
         <View style={styles.headerIcons}>
           <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/Profile')}>
-            <Ionicons name="person-circle-outline" size={32} color="#18181b" />
+            <View style={styles.avatarCircle} />
           </TouchableOpacity>
         </View>
       </View>
-      {/* 2x2 Grid of Buttons */}
+
+      {/* Navigation Grid */}
       <View style={styles.gridContainer}>
         <View style={styles.gridRow}>
           <TouchableOpacity style={styles.gridButton} onPress={() => router.push('/CampusMap')}>
@@ -68,60 +108,340 @@ export default function Index() {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+
+      {/* Stats Row */}
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Active Sessions</Text>
+          <Text style={styles.statValue}>{sessions.length}</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>Your Sessions</Text>
+          <Text style={styles.statValue}>1</Text>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContainer: {
+    paddingBottom: 40,
     backgroundColor: '#fff',
-    paddingTop: 0,
   },
-  header: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingTop: 36,
+    paddingHorizontal: 24,
+    paddingBottom: 12,
+    backgroundColor: '#fff',
   },
-  headerTitle: {
+  greeting: {
+    fontSize: 16,
+    color: '#888',
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
     color: '#18181b',
-    fontSize: 32,
-    fontWeight: 'bold',
+    marginBottom: 0,
   },
   headerIcons: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   iconButton: {
-    marginLeft: 16,
+    marginLeft: 12,
+    padding: 4,
+  },
+  avatarCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f1f1f4',
   },
   gridContainer: {
-    marginTop: 8,
-    paddingHorizontal: 10,
+    marginTop: 18,
+    marginBottom: 18,
+    paddingHorizontal: 12,
   },
   gridRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   gridButton: {
-    backgroundColor: '#18181b',
-    borderRadius: 14,
     flex: 1,
+    backgroundColor: '#18181b',
+    borderRadius: 16,
+    marginHorizontal: 8,
+    paddingVertical: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 10,
-    paddingVertical: 32,
-    minWidth: 140,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   gridButtonText: {
     color: '#fff',
-    fontSize: 18,
     fontWeight: '600',
-    marginTop: 12,
+    fontSize: 16,
+    marginTop: 10,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: 18,
+    marginHorizontal: 12,
+    gap: 16,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#f6f6f8',
+    borderRadius: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    alignItems: 'flex-start',
+    marginRight: 8,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#888',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#18181b',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#18181b',
+    marginLeft: 24,
+    marginBottom: 10,
+    marginTop: 8,
+  },
+  snippetContainer: {
+    marginHorizontal: 12,
+    marginBottom: 18,
+    backgroundColor: 'transparent',
+  },
+  snippetCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 20,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+    borderWidth: 1,
+    borderColor: '#f1f1f1',
+  },
+  snippetSubject: {
+    fontWeight: '700',
+    fontSize: 17,
+    color: '#18181b',
+    marginBottom: 2,
+  },
+  snippetName: {
+    fontSize: 15,
+    color: '#888',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  snippetInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  snippetInfo: {
+    fontSize: 15,
+    color: '#555',
+  },
+  snippetButtonRow: {
+    flexDirection: 'row',
+    marginTop: 14,
+    gap: 8,
+  },
+  snippetViewButton: {
+    flex: 1,
+    backgroundColor: '#18181b',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  snippetViewButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  snippetJoinButton: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#18181b',
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  snippetJoinButtonText: {
+    color: '#18181b',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  snippetAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    marginTop: 2,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  snippetAllButtonText: {
+    color: '#18181b',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  snippetEmpty: {
+    color: '#888',
+    fontSize: 15,
+    textAlign: 'center',
+    marginVertical: 18,
+  },
+  // --- Session Card Redesign ---
+  sessionCardBox: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#ececf0',
+    marginBottom: 18,
+    padding: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+    overflow: 'hidden',
+  },
+  sessionCardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 18,
+    paddingBottom: 10,
+  },
+  sessionAvatarCol: {
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  sessionAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f1f1f4',
+    marginTop: 2,
+  },
+  sessionHostCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  sessionHostName: {
+    fontWeight: '700',
+    fontSize: 17,
+    color: '#18181b',
+    marginRight: 4,
+  },
+  sessionHostLabel: {
+    fontSize: 15,
+    color: '#888',
+    fontWeight: '500',
+  },
+  sessionSubjectCode: {
+    fontWeight: '700',
+    fontSize: 16,
+    color: '#18181b',
+  },
+  sessionSubjectName: {
+    fontSize: 16,
+    color: '#18181b',
+    fontWeight: '400',
+  },
+  sessionInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  sessionInfo: {
+    fontSize: 15,
+    color: '#555',
+  },
+  sessionInfoLabel: {
+    fontSize: 14,
+    color: '#888',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  sessionAttendeeCol: {
+    alignItems: 'flex-end',
+    justifyContent: 'flex-start',
+    minWidth: 48,
+  },
+  sessionAttendeePill: {
+    backgroundColor: '#f6f6f8',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginTop: 2,
+    alignSelf: 'flex-end',
+  },
+  sessionAttendeePillText: {
+    fontWeight: '700',
+    color: '#18181b',
+    fontSize: 15,
+  },
+  sessionDivider: {
+    height: 1,
+    backgroundColor: '#ececf0',
+    marginHorizontal: 0,
+  },
+  sessionButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+  },
+  sessionButtonLeft: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sessionButtonRight: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sessionButtonText: {
+    color: '#18181b',
+    fontWeight: '500',
+    fontSize: 16,
+  },
+  sessionButtonTextBold: {
+    color: '#18181b',
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  sessionButtonDivider: {
+    width: 1,
+    height: '70%',
+    backgroundColor: '#ececf0',
   },
 });

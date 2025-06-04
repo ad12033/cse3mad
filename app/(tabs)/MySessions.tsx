@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, ActivityIndicator, Modal, TextInput, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, getDocs, query, where, doc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { db } from '../../firebase';
@@ -28,24 +28,28 @@ const MySessions: React.FC = () => {
   const [tab, setTab] = useState<'hosting' | 'attending'>('hosting');
   const user = getAuth().currentUser;
 
-  useEffect(() => {
+  const fetchSessions = async () => {
     if (!user) return;
-    const fetchSessions = async () => {
-      setLoading(true);
-      try {
-        const sessionsCol = collection(db, 'sessions');
-        const sessionSnapshot = await getDocs(sessionsCol);
-        const allSessions = sessionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Session[];
-        setHosting(allSessions.filter(s => s.createdBy === user.uid));
-        setAttending(allSessions.filter(s => s.attendees && s.attendees.includes(user.uid) && s.createdBy !== user.uid));
-      } catch (error) {
-        console.error('Error fetching sessions:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSessions();
-  }, [user]);
+    setLoading(true);
+    try {
+      const sessionsCol = collection(db, 'sessions');
+      const sessionSnapshot = await getDocs(sessionsCol);
+      const allSessions = sessionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Session[];
+      setHosting(allSessions.filter(s => s.createdBy === user.uid));
+      setAttending(allSessions.filter(s => s.attendees && s.attendees.includes(user.uid) && s.createdBy !== user.uid));
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Use useFocusEffect to refresh sessions when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchSessions();
+    }, [user])
+  );
 
   const handleLeave = async (sessionId: string) => {
     if (!user) return;
@@ -58,7 +62,8 @@ const MySessions: React.FC = () => {
             await updateDoc(sessionRef, {
               attendees: arrayRemove(user.uid),
             });
-            setAttending(attending.filter(s => s.id !== sessionId));
+            // Refresh the sessions list after leaving
+            fetchSessions();
           } catch (error) {
             Alert.alert('Error', 'Could not leave session.');
           }

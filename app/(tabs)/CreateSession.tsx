@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { addDoc, collection, Timestamp, getFirestore } from 'firebase/firestore';
+import { addDoc, collection, Timestamp } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { getAuth } from 'firebase/auth';
-import { SessionForm, SessionFormValues } from './components/SessionForm';
-import { Firestore } from 'firebase/firestore';
+import { SessionForm, SessionFormValues } from '../components/SessionForm';
 
 const INITIAL_FORM: SessionFormValues = {
   subject: '',
@@ -15,8 +15,6 @@ const INITIAL_FORM: SessionFormValues = {
   time: '',
   description: '',
 };
-
-const db: Firestore = getFirestore();
 
 const CreateSession: React.FC = () => {
   const router = useRouter();
@@ -59,50 +57,49 @@ const CreateSession: React.FC = () => {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: '#fff' }} contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-      <View style={styles.headerRow}>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color="#18181b" />
+          <Ionicons name="arrow-back" size={24} color="#18181b" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Study Session</Text>
+        <Text style={styles.headerTitle}>Create Session</Text>
       </View>
-      <View style={styles.sectionFirst}>
-        <SessionForm values={form} onChange={handleFormChange} submitting={submitting} />
-      </View>
-      <TouchableOpacity style={styles.createButton} onPress={handleCreateSession} disabled={submitting}>
-        <Text style={styles.createButtonText}>{submitting ? 'Creating...' : 'Create Study Session'}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.sectionFirst}>
+          <SessionForm values={form} onChange={handleFormChange} submitting={submitting} />
+        </View>
+        <TouchableOpacity style={styles.createButton} onPress={handleCreateSession} disabled={submitting}>
+          <Text style={styles.createButtonText}>{submitting ? 'Creating...' : 'Create Study Session'}</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    paddingBottom: 40,
-    paddingHorizontal: 0,
+  container: {
+    flex: 1,
     backgroundColor: '#fff',
   },
-  headerRow: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 60,
-    paddingHorizontal: 24,
-    paddingBottom: 24,
-    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#ececec',
-    marginBottom: 8,
+    borderBottomColor: '#f1f1f4',
   },
   backButton: {
-    marginRight: 18,
-    borderRadius: 20,
-    padding: 4,
+    marginRight: 16,
   },
   headerTitle: {
-    fontSize: 30,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '600',
     color: '#18181b',
-    letterSpacing: -0.5,
+  },
+  scrollView: {
+    flex: 1,
   },
   sectionFirst: {
     paddingTop: 32,

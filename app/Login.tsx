@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
+import { signInWithEmailAndPassword, getAuth } from 'firebase/auth';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -13,6 +12,7 @@ const Login: React.FC = () => {
   const handleLogin = async () => {
     setLoading(true);
     try {
+      const auth = getAuth();
       await signInWithEmailAndPassword(auth, email, password);
       router.replace('/');
     } catch (error: any) {
@@ -28,7 +28,7 @@ const Login: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.container}>
-        <Text style={styles.title}>Study Finder</Text>
+        <Text style={styles.title}>Study Group Finder</Text>
         <Text style={styles.subtitle}>Sign in to access your account</Text>
         <View style={styles.card}>
           <Text style={styles.label}>Email Address</Text>

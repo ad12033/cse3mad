@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Text, View, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
 import { useRouter } from 'expo-router';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '../firebase';
+import { auth } from '../../firebase';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, getDocs, query, orderBy, limit, where } from 'firebase/firestore';
+import { db } from '../../firebase';
 
 interface Session {
   id: string;
@@ -26,6 +26,7 @@ export default function Index() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [userSessions, setUserSessions] = useState<Session[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
 
   useEffect(() => {
@@ -38,21 +39,29 @@ export default function Index() {
 
   useEffect(() => {
     const fetchSessions = async () => {
+      if (!user) return; // Don't fetch if user is not authenticated
       setSessionsLoading(true);
       try {
+        // Fetch all active sessions
         const sessionsCol = collection(db, 'sessions');
         const sessionsQuery = query(sessionsCol, orderBy('createdAt', 'desc'), limit(3));
         const sessionSnapshot = await getDocs(sessionsQuery);
         const sessionList = sessionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Session[];
         setSessions(sessionList);
+
+        // Fetch user's sessions if user is logged in
+        const userSessionsQuery = query(sessionsCol, where('createdBy', '==', user.uid));
+        const userSessionSnapshot = await getDocs(userSessionsQuery);
+        const userSessionList = userSessionSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Session[];
+        setUserSessions(userSessionList);
       } catch (error) {
-        // ignore
+        console.error('Error fetching sessions:', error);
       } finally {
         setSessionsLoading(false);
       }
     };
     fetchSessions();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -92,17 +101,17 @@ export default function Index() {
             <Ionicons name="location-outline" size={32} color="#fff" />
             <Text style={styles.gridButtonText}>Campus Map</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridButton} onPress={() => router.push('/CreateSession')}>
+          <TouchableOpacity style={styles.gridButton} onPress={() => router.push('/(tabs)/CreateSession')}>
             <Ionicons name="add" size={32} color="#fff" />
             <Text style={styles.gridButtonText}>Create Session</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.gridRow}>
-          <TouchableOpacity style={styles.gridButton} onPress={() => router.push('/FindSessions')}>
+          <TouchableOpacity style={styles.gridButton} onPress={() => router.push('/(tabs)/FindSessions')}>
             <Ionicons name="search" size={32} color="#fff" />
             <Text style={styles.gridButtonText}>Find Sessions</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.gridButton} onPress={() => router.push('/MySessions')}>
+          <TouchableOpacity style={styles.gridButton} onPress={() => router.push('/(tabs)/MySessions')}>
             <MaterialIcons name="groups" size={32} color="#fff" />
             <Text style={styles.gridButtonText}>My Sessions</Text>
           </TouchableOpacity>
@@ -117,7 +126,7 @@ export default function Index() {
         </View>
         <View style={styles.statCard}>
           <Text style={styles.statLabel}>Your Sessions</Text>
-          <Text style={styles.statValue}>1</Text>
+          <Text style={styles.statValue}>{userSessions.length}</Text>
         </View>
       </View>
     </ScrollView>

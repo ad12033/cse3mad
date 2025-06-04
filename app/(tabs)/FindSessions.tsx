@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, getDocs, query, orderBy, getFirestore } from 'firebase/firestore';
+import { Firestore } from 'firebase/firestore';
+import { SessionCard } from '../components/SessionCard';
 
 interface Session {
   id: string;
@@ -17,57 +18,50 @@ interface Session {
   hostName?: string;
   attendeeCount?: number;
   attendeeLimit?: number;
+  rating?: number;
 }
+
+const db: Firestore = getFirestore();
 
 const FindSessions: React.FC = () => {
   const router = useRouter();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     const fetchSessions = async () => {
-      try {
-        const sessionsCol = collection(db, 'sessions');
-        const sessionsQuery = query(sessionsCol, orderBy('createdAt', 'desc'));
-        const sessionSnapshot = await getDocs(sessionsQuery);
-        const sessionList = sessionSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            ...data
-          };
-        }) as Session[];
-        setSessions(sessionList);
-      } catch (error) {
-        console.error('Error fetching sessions:', error);
-      } finally {
-        setLoading(false);
-      }
+      const sessionsQuery = query(collection(db, 'sessions'), orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(sessionsQuery);
+      const sessionsList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Session));
+      setSessions(sessionsList);
+      setLoading(false);
     };
+
     fetchSessions();
   }, []);
 
+  const filteredSessions = sessions.filter(session => {
+    const matchesSearch = session.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          session.subjectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          session.locationName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filter === 'all' || session.date === filter;
+    return matchesSearch && matchesFilter;
+  });
+
   const renderSession = ({ item }: { item: Session }) => (
-    <View style={styles.sessionCardBox}>
-      <View style={styles.sessionCardTopRow}>
-        {/* Avatar and Host */}
-        <View style={styles.sessionAvatarCol}>
-          <View style={styles.sessionAvatar} />
-        </View>
-        <View style={styles.sessionHostCol}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-            <Text style={styles.sessionHostName}>{item.hostName || 'Alex K.'}</Text>
-            <Text style={styles.sessionHostLabel}> is hosting</Text>
-          </View>
-        </View>
-      </View>
-      <Text style={styles.sessionLabel}>Subject code: <Text style={styles.sessionValue}>{item.subject}</Text></Text>
-      <Text style={styles.sessionLabel}>Subject name: <Text style={styles.sessionValue}>{item.subjectName}</Text></Text>
-      <Text style={styles.sessionLabel}>Location: <Text style={styles.sessionValue}>{item.locationName}</Text></Text>
-      <Text style={styles.sessionLabel}>Date: <Text style={styles.sessionValue}>{item.date}</Text></Text>
-      <Text style={styles.sessionLabel}>Time: <Text style={styles.sessionValue}>{item.time}</Text></Text>
-      <View style={styles.sessionDivider} />
-    </View>
+    <SessionCard
+      subject={item.subject + (item.subjectName ? ` ${item.subjectName}` : '')}
+      location={item.locationName}
+      time={`${item.date} at ${item.time}`}
+      host={item.hostName || 'Anonymous'}
+      description={item.description || ''}
+      onPress={() => router.push({
+        pathname: '/(tabs)/SessionDetails',
+        params: { session: JSON.stringify(item) }
+      })}
+    />
   );
 
   return (
@@ -78,13 +72,33 @@ const FindSessions: React.FC = () => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Find Sessions</Text>
       </View>
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Search sessions..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+      />
+      <View style={styles.filterChips}>
+        <TouchableOpacity style={[styles.filterChip, filter === 'all' && styles.filterChipActive]} onPress={() => setFilter('all')}>
+          <Text style={[styles.filterChipText, filter === 'all' && styles.filterChipTextActive]}>All</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.filterChip, filter === 'today' && styles.filterChipActive]} onPress={() => setFilter('today')}>
+          <Text style={[styles.filterChipText, filter === 'today' && styles.filterChipTextActive]}>Today</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.filterChip, filter === 'tomorrow' && styles.filterChipActive]} onPress={() => setFilter('tomorrow')}>
+          <Text style={[styles.filterChipText, filter === 'tomorrow' && styles.filterChipTextActive]}>Tomorrow</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.filterChip, filter === 'next' && styles.filterChipActive]} onPress={() => setFilter('next')}>
+          <Text style={[styles.filterChipText, filter === 'next' && styles.filterChipTextActive]}>Next</Text>
+        </TouchableOpacity>
+      </View>
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0000ff" />
         </View>
       ) : (
         <FlatList
-          data={sessions}
+          data={filteredSessions}
           renderItem={renderSession}
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContainer}
@@ -120,6 +134,40 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#18181b',
     letterSpacing: -0.5,
+  },
+  searchBar: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingHorizontal: 10,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    backgroundColor: '#f1f1f4',
+  },
+  filterChipActive: {
+    backgroundColor: '#18181b',
+  },
+  filterChipText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#18181b',
+  },
+  filterChipTextActive: {
+    color: '#fff',
   },
   loadingContainer: {
     flex: 1,
